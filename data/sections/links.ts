@@ -109,6 +109,11 @@ export const linksSections: Section[] = [
             desc: "UI/UX inspiration library with real-world app flows.",
           },
           {
+            label: "Figma",
+            url: "https://www.figma.com/",
+            desc: "Collaborative design and prototyping for product teams.",
+          },
+          {
             label: "Unsplash",
             url: "https://unsplash.com/",
             desc: "Free high-quality photos and visual assets.",

@@ -44,6 +44,12 @@ export const toolboxSections: Section[] = [
         tone: "teal",
       },
       {
+        title: "OpenCode",
+        desc: "OpenCode AI.",
+        code: ["https://opencode.ai/"],
+        tone: "slate",
+      },
+      {
         title: "Claude",
         desc: "Open Claude CLI.",
         code: ["claude"],
