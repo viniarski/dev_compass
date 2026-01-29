@@ -1,0 +1,772 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+type TabId = "start" | "toolbox" | "tailwind" | "ai-prompts" | "links";
+
+type Block = {
+  title: string;
+  desc?: string;
+  code?: string[];
+  bullets?: string[];
+  links?: LinkItem[];
+  tone?: "teal" | "amber" | "slate";
+};
+
+type LinkItem = {
+  label: string;
+  url: string;
+  desc: string;
+};
+
+type Section = {
+  kicker: string;
+  title: string;
+  blocks: Block[];
+};
+
+const tabs: { id: TabId; label: string; subtitle: string }[] = [
+  {
+    id: "start",
+    label: "Start",
+    subtitle: "From zero to a running Next.js app in minutes.",
+  },
+  {
+    id: "toolbox",
+    label: "Toolbox",
+    subtitle: "Daily drivers for setup, Git, and diagnostics.",
+  },
+  {
+    id: "tailwind",
+    label: "Tailwind",
+    subtitle: "Utility snippets and layout recipes you reuse often.",
+  },
+  {
+    id: "ai-prompts",
+    label: "AI Prompts",
+    subtitle: "Reusable prompts for shipping faster with confidence.",
+  },
+  {
+    id: "links",
+    label: "Links",
+    subtitle: "Your daily driver pages, grouped and documented.",
+  },
+];
+
+const sections: Record<TabId, Section[]> = {
+  start: [
+    {
+      kicker: "Install",
+      title: "",
+      blocks: [
+        {
+          title: "Homebrew & Node",
+          desc: "Grab your package manager and a stable Node runtime.",
+          code: [
+            "# install Homebrew",
+            "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"",
+            "brew install node",
+          ],
+          tone: "teal",
+        },
+        {
+          title: "Bun & pnpm (optional)",
+          desc: "Fast installs and a single lockfile for teams.",
+          code: [
+            "curl -fsSL https://bun.sh/install | bash",
+            "corepack enable",
+            "corepack prepare pnpm@latest --activate",
+          ],
+          tone: "amber",
+        },
+      ],
+    },
+    {
+      kicker: "Project",
+      title: "Create a Next.js app",
+      blocks: [
+        {
+          title: "Bun starter",
+          desc: "Lightning-fast create flow with sensible defaults.",
+          code: [
+            "bun create next-app@latest my_app",
+            "cd my_app",
+            "bun run dev",
+          ],
+          tone: "slate",
+        },
+        {
+          title: "npm starter",
+          desc: "Classic setup with the official initializer.",
+          code: [
+            "npx create-next-app@latest my_app",
+            "cd my_app",
+            "npm run dev",
+          ],
+          tone: "teal",
+        },
+      ],
+    },
+    {
+      kicker: "First steps",
+      title: "Make it yours",
+      blocks: [
+        {
+          title: "Clean the slate",
+          bullets: [
+            "Remove boilerplate components and sample routes.",
+            "Set up your global tokens and color palette.",
+            "Create a /components folder for shared UI.",
+          ],
+          tone: "amber",
+        },
+        {
+          title: "Run & build",
+          code: ["bun run dev", "bun run lint", "bun run build"],
+          desc: "Keep the feedback loop tight as you iterate.",
+          tone: "slate",
+        },
+      ],
+    },
+  ],
+  toolbox: [
+    {
+      kicker: "Git",
+      title: "Branching & cleanup",
+      blocks: [
+        {
+          title: "Daily flow",
+          code: [
+            "git checkout -b feat/cheatsheet-layout",
+            "git status -sb",
+            "git add .",
+            "git commit -m \"Add base layout for cheatsheet\"",
+          ],
+          tone: "teal",
+        },
+        {
+          title: "Housekeeping",
+          code: [
+            "git fetch --prune",
+            "git branch --merged | grep -v \"\\*\\|main\" | xargs -n 1 git branch -d",
+          ],
+          tone: "slate",
+        },
+      ],
+    },
+    {
+      kicker: "Diagnostics",
+      title: "Stay sane while debugging",
+      blocks: [
+        {
+          title: "Ports & processes",
+          code: [
+            "lsof -i :3000",
+            "kill -9 $(lsof -t -i :3000)",
+            "ps aux | rg node",
+          ],
+          tone: "amber",
+        },
+        {
+          title: "System health",
+          code: ["df -h", "du -sh ./*", "brew doctor"],
+          tone: "teal",
+        },
+      ],
+    },
+  ],
+  tailwind: [
+    {
+      kicker: "Layouts",
+      title: "Go-to layout patterns",
+      blocks: [
+        {
+          title: "Hero layout",
+          code: [
+            "<section class=\"grid gap-10 lg:grid-cols-[1.2fr_.8fr]\">",
+            "  <div class=\"space-y-6\">...",
+            "  <aside class=\"rounded-3xl border border-white/10 bg-white/5 p-6\">...",
+            "</section>",
+          ],
+          tone: "slate",
+        },
+        {
+          title: "Card grid",
+          code: [
+            "<div class=\"grid gap-5 md:grid-cols-2 xl:grid-cols-3\">",
+            "  <article class=\"rounded-2xl border border-slate-200 bg-white p-6 shadow-sm\">...",
+            "</div>",
+          ],
+          tone: "teal",
+        },
+      ],
+    },
+    {
+      kicker: "Utilities",
+      title: "Tiny helpers with big impact",
+      blocks: [
+        {
+          title: "Buttons",
+          code: [
+            "class=\"inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20\"",
+            "class=\"inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-900\"",
+          ],
+          tone: "amber",
+        },
+        {
+          title: "Soft panels",
+          code: [
+            "class=\"rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur\"",
+            "class=\"rounded-2xl border border-slate-200/60 bg-white/80 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.6)]\"",
+          ],
+          tone: "slate",
+        },
+      ],
+    },
+  ],
+  "ai-prompts": [
+    {
+      kicker: "Drafts",
+      title: "Prompt patterns to start from",
+      blocks: [
+        {
+          title: "Build a feature spec",
+          desc: "Turn a rough idea into a scoped plan with acceptance criteria.",
+          code: [
+            "Act as a senior product engineer. Draft a feature spec for [feature].",
+            "Include goals, non-goals, user stories, acceptance criteria, and risks.",
+            "Assume the stack is Next.js + Tailwind + Prisma. Keep it concise.",
+          ],
+          tone: "teal",
+        },
+        {
+          title: "Debug triage",
+          desc: "Get a tight investigation plan and likely root causes.",
+          code: [
+            "You are a debugging partner. Given this error: [paste],",
+            "list the top 5 hypotheses, how to validate each, and the fix.",
+            "Ask 3 clarifying questions if needed.",
+          ],
+          tone: "amber",
+        },
+      ],
+    },
+    {
+      kicker: "Code",
+      title: "Implementation helpers",
+      blocks: [
+        {
+          title: "Refactor safely",
+          desc: "Shrink files and improve clarity without breaking behavior.",
+          code: [
+            "Refactor this file for readability and composability.",
+            "Constraints: keep behavior identical, add minimal comments,",
+            "and call out any risky changes before applying them.",
+          ],
+          tone: "slate",
+        },
+        {
+          title: "Test coverage",
+          desc: "Generate missing tests based on real scenarios.",
+          code: [
+            "Given this component and its responsibilities:",
+            "[paste code or summary]",
+            "Propose unit + integration tests with clear assertions.",
+          ],
+          tone: "teal",
+        },
+      ],
+    },
+    {
+      kicker: "Review",
+      title: "Quality and risk checks",
+      blocks: [
+        {
+          title: "Code review pulse",
+          desc: "Fast scan for regressions, risks, and missing tests.",
+          code: [
+            "Review this PR like a senior engineer.",
+            "Call out likely regressions, edge cases, and missing tests.",
+            "Be concise and list issues by severity.",
+          ],
+          tone: "amber",
+        },
+        {
+          title: "UX copy audit",
+          desc: "Tighten tone, clarity, and consistency.",
+          code: [
+            "Audit this UI copy for clarity and voice.",
+            "Suggest improvements for headings, labels, and errors.",
+            "Keep changes minimal and specific.",
+          ],
+          tone: "slate",
+        },
+      ],
+    },
+    {
+      kicker: "Delivery",
+      title: "Shipping checklists",
+      blocks: [
+        {
+          title: "Release checklist",
+          desc: "Make sure nothing slips before launch.",
+          code: [
+            "Create a release checklist for [feature].",
+            "Include QA, monitoring, rollback, and comms steps.",
+            "Assume a small team and keep it concise.",
+          ],
+          tone: "teal",
+        },
+        {
+          title: "Incident recap",
+          desc: "Capture what happened and how to prevent it.",
+          code: [
+            "Write a blameless incident summary for [incident].",
+            "Include timeline, impact, root cause, and follow-ups.",
+            "Keep it under 12 bullets.",
+          ],
+          tone: "amber",
+        },
+      ],
+    },
+  ],
+  links: [
+    {
+      kicker: "Platforms",
+      title: "Deploy, data, and infrastructure",
+      blocks: [
+        {
+          title: "Cloud & backend",
+          desc: "Core platforms you reach for when shipping production apps.",
+          links: [
+            {
+              label: "Vercel",
+              url: "https://vercel.com/",
+              desc: "Frontend cloud for building and deploying modern web experiences.",
+            },
+            {
+              label: "Supabase",
+              url: "https://supabase.com/",
+              desc: "Postgres development platform with auth, storage, APIs, and realtime.",
+            },
+            {
+              label: "Google Cloud Console",
+              url: "https://console.cloud.google.com/",
+              desc: "Google Cloud dashboard for deploying apps, data, and AI workloads.",
+            },
+            {
+              label: "Neon",
+              url: "https://neon.com/",
+              desc: "Serverless Postgres built for modern engineering teams.",
+            },
+            {
+              label: "Upstash",
+              url: "https://upstash.com/",
+              desc: "Serverless data platform for Redis, queues, and edge workloads.",
+            },
+          ],
+          tone: "slate",
+        },
+      ],
+    },
+    {
+      kicker: "Operations",
+      title: "Observe, measure, and message",
+      blocks: [
+        {
+          title: "Monitoring & analytics",
+          desc: "Keep uptime and product insights in one quick checklist.",
+          links: [
+            {
+              label: "Sentry",
+              url: "https://sentry.io/",
+              desc: "Error tracking and performance monitoring for apps.",
+            },
+            {
+              label: "UptimeRobot",
+              url: "https://uptimerobot.com/",
+              desc: "Uptime monitoring and alerts for sites and endpoints.",
+            },
+            {
+              label: "PostHog",
+              url: "https://posthog.com/",
+              desc: "Product analytics with session replay, feature flags, and experiments.",
+            },
+            {
+              label: "Resend",
+              url: "https://resend.com/",
+              desc: "Email API for developers to send transactional or marketing mail.",
+            },
+          ],
+          tone: "amber",
+        },
+      ],
+    },
+    {
+      kicker: "Workflow",
+      title: "Dev stack essentials",
+      blocks: [
+        {
+          title: "Code + runtime",
+          desc: "Where you keep repos and move fast locally.",
+          links: [
+            {
+              label: "GitHub",
+              url: "https://github.com/",
+              desc: "Developer platform to build, scale, and ship software.",
+            },
+            {
+              label: "Bun",
+              url: "https://bun.com/",
+              desc: "Fast all-in-one JavaScript toolkit (runtime, bundler, tests, packages).",
+            },
+          ],
+          tone: "teal",
+        },
+      ],
+    },
+    {
+      kicker: "Design",
+      title: "Design references and assets",
+      blocks: [
+        {
+          title: "Visual inspiration",
+          desc: "Grab visuals and UI patterns without context switching.",
+          links: [
+            {
+              label: "Mobbin",
+              url: "https://mobbin.com/",
+              desc: "UI/UX inspiration library with real-world app flows.",
+            },
+            {
+              label: "Unsplash",
+              url: "https://unsplash.com/",
+              desc: "Free high-quality photos and visual assets.",
+            },
+            {
+              label: "AnyWebP",
+              url: "https://anywebp.com/",
+              desc: "Free WebP converter that runs in the browser with no uploads.",
+            },
+          ],
+          tone: "slate",
+        },
+      ],
+    },
+    {
+      kicker: "AI",
+      title: "Assistant lineup",
+      blocks: [
+        {
+          title: "Chat assistants",
+          desc: "Shortcuts for brainstorming, coding, and research.",
+          links: [
+            {
+              label: "ChatGPT",
+              url: "https://chatgpt.com/",
+              desc: "OpenAI’s AI assistant for everyday tasks and coding help.",
+            },
+            {
+              label: "Claude",
+              url: "https://claude.ai/",
+              desc: "Anthropic’s assistant for writing, analysis, and code.",
+            },
+            {
+              label: "Grok",
+              url: "https://grok.com/",
+              desc: "xAI’s assistant, available on web and mobile.",
+            },
+            {
+              label: "Gemini",
+              url: "https://gemini.google.com/",
+              desc: "Google’s Gemini AI models and chat experience.",
+            },
+          ],
+          tone: "amber",
+        },
+      ],
+    },
+    {
+      kicker: "Web builders",
+      title: "Ship landing pages fast",
+      blocks: [
+        {
+          title: "No/low-code builders",
+          desc: "Quickly stand up marketing pages or prototypes.",
+          links: [
+            {
+              label: "Framer",
+              url: "https://framer.com/",
+              desc: "Site builder with CMS, animations, and fast publishing.",
+            },
+            {
+              label: "Webflow",
+              url: "https://webflow.com/",
+              desc: "Visual website builder and CMS for custom sites.",
+            },
+            {
+              label: "Lovable",
+              url: "https://lovable.dev/",
+              desc: "Build apps and websites by chatting with AI.",
+            },
+          ],
+          tone: "teal",
+        },
+      ],
+    },
+    {
+      kicker: "Launch",
+      title: "Launch and community",
+      blocks: [
+        {
+          title: "Go live & meet founders",
+          desc: "Places to ship, validate, and meet peers.",
+          links: [
+            {
+              label: "Product Hunt",
+              url: "https://www.producthunt.com/",
+              desc: "Discover and launch new tech products.",
+            },
+            {
+              label: "Indie Hackers",
+              url: "https://www.indiehackers.com/",
+              desc: "Community for building profitable online businesses.",
+            },
+            {
+              label: "Gamma",
+              url: "https://gamma.app/",
+              desc: "AI tool for presentations, docs, and fast websites.",
+            },
+          ],
+          tone: "slate",
+        },
+      ],
+    },
+  ],
+};
+
+function toneClasses(tone: Block["tone"]) {
+  switch (tone) {
+    case "amber":
+      return "border-amber-200/70 bg-amber-50/60 text-amber-950";
+    case "teal":
+      return "border-teal-200/70 bg-teal-50/60 text-teal-950";
+    default:
+      return "border-slate-200/70 bg-white/80 text-slate-900";
+  }
+}
+
+export default function Home() {
+  const [active, setActive] = useState<TabId>("start");
+  const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const isMinimalTab = ["ai-prompts", "start", "toolbox", "tailwind"].includes(
+    active
+  );
+
+  const activeTab = useMemo(
+    () => tabs.find((tab) => tab.id === active) ?? tabs[0],
+    [active]
+  );
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.2),_transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_40%,_rgba(245,158,11,0.18),_transparent_55%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,_rgba(15,23,42,0.95),_rgba(15,23,42,0.75)_40%,_rgba(2,6,23,0.95))]" />
+      </div>
+
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-14 md:px-10 lg:px-14">
+        <header className="flex flex-col gap-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-teal-200">
+              Dev Compass
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {tabs.map((tab) => (
+              <button
+                key={`${tab.id}-chip`}
+                onClick={() => setActive(tab.id)}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  active === tab.id
+                    ? "border-teal-300 bg-teal-300 text-slate-900"
+                    : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </header>
+
+        <div className="grid gap-10">
+          {active === "links" ? (
+            <section className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {sections.links.map((section) => (
+                <div key={section.title} className="grid gap-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-white/70">
+                    {section.kicker}
+                  </h3>
+                  <ul className="space-y-2 text-base text-white">
+                    {section.blocks
+                      .flatMap((block) => block.links ?? [])
+                      .map((link) => (
+                        <li key={link.url}>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-white transition hover:text-teal-200"
+                          >
+                            {link.label}
+                          </a>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          ) : (
+            sections[active].map((section) => (
+              <section key={section.title} className="grid gap-5">
+                {active === "start" && section.kicker === "Install" ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsInstallOpen((prev) => !prev)}
+                    className="flex items-center gap-3 text-left"
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-200">
+                      {section.kicker}
+                    </span>
+                    <div className="h-px flex-1 bg-white/10" />
+                    <span className="text-xs font-semibold text-white/70">
+                      {isInstallOpen ? "Hide" : "Show"}
+                    </span>
+                  </button>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-200">
+                        {section.kicker}
+                      </span>
+                      <div className="h-px flex-1 bg-white/10" />
+                    </div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      {section.title}
+                    </h2>
+                  </>
+                )}
+                <div
+                  className={`grid gap-5 lg:grid-cols-2 ${
+                    active === "start" && section.kicker === "Install"
+                      ? isInstallOpen
+                        ? ""
+                        : "hidden"
+                      : ""
+                  }`}
+                >
+                  {section.blocks.map((block) => (
+                    <article
+                      key={block.title}
+                          className={
+                            isMinimalTab
+                              ? "border-0 bg-transparent p-0 shadow-none"
+                              : `rounded-3xl border p-6 shadow-[0_25px_60px_-40px_rgba(15,23,42,0.8)] ${toneClasses(
+                                  block.tone
+                                )}`
+                          }
+                    >
+                      <div className="flex flex-col gap-3">
+                        <h3 className="text-lg font-semibold">
+                          {block.title}
+                        </h3>
+                        {block.desc ? (
+                          <p
+                            className={
+                              isMinimalTab
+                                ? "text-sm text-white/70"
+                                : "text-sm text-slate-700/80"
+                            }
+                          >
+                            {block.desc}
+                          </p>
+                        ) : null}
+                        {block.bullets ? (
+                          <ul
+                            className={
+                              isMinimalTab
+                                ? "space-y-2 text-sm text-white/70"
+                                : "space-y-2 text-sm text-slate-700/80"
+                            }
+                          >
+                            {block.bullets.map((item) => (
+                              <li key={item} className="flex gap-2">
+                                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-slate-400" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {block.code ? (
+                          isMinimalTab ? (
+                            <ul className="mt-2 space-y-1 text-sm text-white">
+                              {block.code.map((line) => (
+                                <li key={line} className="font-mono">
+                                  {line}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <pre className="mt-2 overflow-x-auto rounded-2xl bg-slate-900/95 p-4 text-xs text-emerald-100 shadow-inner">
+                              <code>
+                                {block.code
+                                  .map((line) => `${line}\n`)
+                                  .join("")}
+                              </code>
+                            </pre>
+                          )
+                        ) : null}
+                        {block.links ? (
+                          <div className="mt-2 grid gap-3">
+                            {block.links.map((link) => (
+                              <a
+                                key={link.url}
+                                href={link.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-left text-sm text-slate-800 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                              >
+                                <div className="flex items-center justify-between gap-4">
+                                  <span className="font-semibold text-slate-900">
+                                    {link.label}
+                                  </span>
+                                  <span className="text-xs text-slate-400">
+                                    Visit
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-xs text-slate-600">
+                                  {link.desc}
+                                </p>
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))
+          )}
+        </div>
+
+        <footer className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+          Tip: Keep this page open on a second monitor and treat it like a live
+          ops runbook. Next, tell me which prompts, links, or commands you want
+          to drop into each tab.
+        </footer>
+      </main>
+    </div>
+  );
+}
