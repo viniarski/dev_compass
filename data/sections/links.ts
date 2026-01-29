@@ -126,6 +126,33 @@ export const linksSections: Section[] = [
         ],
         tone: "slate",
       },
+      {
+        title: "Design tools",
+        desc: "Quick utilities for icons, diagrams, and layout systems.",
+        links: [
+          {
+            label: "Favicon Converter",
+            url: "https://favicon.io/favicon-converter/",
+            desc: "Generate favicons from PNG, JPG, or SVG files.",
+          },
+          {
+            label: "React Icons",
+            url: "https://react-icons.github.io/react-icons/",
+            desc: "Icon packs for React with a single import API.",
+          },
+          {
+            label: "Relume",
+            url: "https://www.relume.io/",
+            desc: "Library of website sections and style guides for builders.",
+          },
+          {
+            label: "draw.io",
+            url: "https://www.drawio.com/",
+            desc: "Free online diagramming for flowcharts and systems.",
+          },
+        ],
+        tone: "slate",
+      },
     ],
   },
   {
